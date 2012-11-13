@@ -1,0 +1,117 @@
+#!/bin/sh 
+
+SAVEHTML=0
+THREAD=
+LOC=
+SPEED=30
+FILENAME=
+
+usage() {
+	cat << EOF
+Usage: `basename $0` [-h] [-t FILENAME] [-s SECONDS] [-l DIRECTORY] <chan thread url>
+Downloads images until cancelled or thread 404's
+
+  -h  		This
+  -l DIRECTORY	Save elsewhere than the threads ID
+  -s SECONDS	Speed between updates (Default: 30)
+  -t FILENAME	Save the thread (with thumbnails)
+  
+Daniel Triendl ( http://pew.cc/ ) wrote the outline of this script.
+Gosha ( http://besvikel.se/ ) edited stuff.
+EOF
+	exit 1
+}
+
+# Output the usage if there aren't any arguments 
+if [ "$#" = 0 ]; then
+	usage
+fi
+
+while getopts "t:l:s:h" OPTION
+do
+	case "$OPTION" in
+		t)
+			SAVEHTML=1
+			FILENAME=$OPTARG
+			;;
+		l)
+			LOC=$OPTARG
+			;;
+		s)
+			SPEED=$OPTARG
+			;;
+		h|?)
+			usage
+			;;
+	esac
+done
+
+                     # bash voodoo magic
+shift $(($OPTIND-1)) # Removes all options we've recognized
+THREAD="$@"          # The first one left is our thread. ( Hopefully )
+
+if [ "$THREAD" = "" ]; then
+	echo >&2 "Error: No thread specified"
+	usage	
+fi
+
+if [ "$LOC" = "" ]; then
+	LOC=$(echo "$THREAD" | egrep -o '/[a-zA-Z0-9.]*$' | sed 's/\.html//g' | sed 's@/@@')
+fi
+
+if [ "$LOC" = "" ]; then # This is not good. `cd ` brings us to ~/
+	echo >&2 "The location can't be empty"
+	exit 1
+fi
+
+if [ ! -d $LOC ]; then
+	mkdir $LOC
+fi
+
+
+echo "Downloading to $LOC/"
+echo ""
+
+cd $LOC
+
+while true
+do
+	TMP=`mktemp`
+	TMP2=`mktemp`
+	TMP3=`mktemp`
+
+	wget -O "$TMP" "$THREAD" --no-check-certificate
+	if [ "$?" != "0" ]; then
+		rm $TMP $TMP2
+		exit 0
+	fi
+	
+	if [ "$SAVEHTML" = "1" ]; then
+		# Edit (and save) the HTML so that it links relatively to the picture
+		cat "$TMP" \
+            | sed 's@\(https\?:\)\?//[a-zA-Z0-9.]\+/[a-z0-9]\+/thumb/\([0-9]\+s.\(jpg\|png\|gif\)\)@thumbs/\2@g' \
+            | sed 's@\(https\?:\)\?//[a-zA-Z0-9.]\+/[a-z0-9]\+/src/\([0-9]\+.\(jpg\|png\|gif\)\)@\2@g' \
+		    > "$FILENAME"
+		
+		# Download thumbnails
+		egrep "(https{0,1}:){0,1}//[a-zA-Z0-9.]+/[a-z0-9]+/thumb/[0-9]*s.(jpg|png|gif)" "$TMP" -o > "$TMP2"
+		cat "$TMP2" \
+		| sed 's@^//@https://@' > "$TMP3"
+		cp $TMP3 tmp3
+		cp $TMP2 tmp2
+		cp $TMP tmp1
+		wget -nc -i $TMP3 -P "thumbs"  --no-check-certificate
+	fi
+
+	# Strip out all pictures from the thread and download them
+	egrep '(https{0,1}:){0,1}//[a-zA-Z0-9.]+/[a-z0-9]+/src/([0-9]*).(jpg|png|gif)' "$TMP" -o > "$TMP2"
+	cat "$TMP2" \
+	| sed 's@^//@https://@' > "$TMP3"
+	wget -nc -i $TMP3 --no-check-certificate
+	
+	rm $TMP $TMP2
+	
+	echo "Waiting $SPEED seconds before next run"
+	sleep $SPEED
+done
+
