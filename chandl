@@ -4,7 +4,7 @@ SAVEHTML=0
 THREAD=
 LOC=
 SPEED=30
-FILENAME=
+FILENAME="thread.html"
 
 usage() {
 	cat << EOF
@@ -14,10 +14,9 @@ Downloads images until cancelled or thread 404's
   -h  		This
   -l DIRECTORY	Save elsewhere than the threads ID
   -s SECONDS	Speed between updates (Default: 30)
-  -t FILENAME	Save the thread (with thumbnails)
-  
-Daniel Triendl ( http://pew.cc/ ) wrote the outline of this script.
-Gosha ( http://besvikel.se/ ) edited stuff.
+  -g            Save the thread
+  -f FILENAME	Filename of thread (implies -g)
+
 EOF
 	exit 1
 }
@@ -27,10 +26,13 @@ if [ "$#" = 0 ]; then
 	usage
 fi
 
-while getopts "t:l:s:h" OPTION
+while getopts "f:l:s:hg" OPTION
 do
 	case "$OPTION" in
-		t)
+        g)
+            SAVEHTML=1
+            ;;
+		f)
 			SAVEHTML=1
 			FILENAME=$OPTARG
 			;;
