@@ -96,7 +96,7 @@ do
 		# Download thumbnails
 		egrep "(https{0,1}:){0,1}//[a-zA-Z0-9.]+/[a-z0-9]+/thumb/[0-9]*s.(jpg|png|gif)" "$TMP" -o > "$TMP2"
 		cat "$TMP2" \
-		| sed 's@^//@https://@' > "$TMP3"
+		| sed 's@^//@https://@' | sort | uniq > "$TMP3"
 		cp $TMP3 tmp3
 		cp $TMP2 tmp2
 		cp $TMP tmp1
@@ -106,7 +106,7 @@ do
 	# Strip out all pictures from the thread and download them
 	egrep '(https{0,1}:){0,1}//[a-zA-Z0-9.]+/[a-z0-9]+/src/([0-9]*).(jpg|png|gif)' "$TMP" -o > "$TMP2"
 	cat "$TMP2" \
-	| sed 's@^//@https://@' > "$TMP3"
+	| sed 's@^//@https://@' | sort | uniq > "$TMP3"
 	wget -nc -i $TMP3 --no-check-certificate
 	
 	rm $TMP $TMP2
