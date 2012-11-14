@@ -8,7 +8,7 @@ FILENAME="thread.html"
 
 usage() {
 	cat << EOF
-Usage: `basename $0` [-h] [-t FILENAME] [-s SECONDS] [-l DIRECTORY] <chan thread url>
+Usage: `basename $0` [-h] [-g] [-f FILENAME] [-s SECONDS] [-l DIRECTORY] <chan thread url>
 Downloads images until cancelled or thread 404's
 
   -h  		This
